@@ -1,0 +1,8 @@
+.DS_Store
+DerivedData/
+build/
+xcuserdata/
+*.xcuserstate
+.swiftpm/
+# XcodeGen 生成物(若手动创建工程并希望提交它,删除下一行)
+PoseTrace.xcodeproj/

@@ -1,0 +1,38 @@
+# XcodeGen 工程定义:在 Mac 上执行 `xcodegen generate` 生成 PoseTrace.xcodeproj(见 SETUP.md)
+name: PoseTrace
+options:
+  bundleIdPrefix: com.posetrace
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+targets:
+  PoseTrace:
+    type: application
+    platform: iOS
+    sources:
+      - PoseTrace
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: false
+        INFOPLIST_FILE: PoseTrace/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.posetrace.app
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+  PoseTraceTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/PoseTraceTests
+    dependencies:
+      - target: PoseTrace
+schemes:
+  PoseTrace:
+    build:
+      targets:
+        PoseTrace: all
+    test:
+      targets:
+        - PoseTraceTests
