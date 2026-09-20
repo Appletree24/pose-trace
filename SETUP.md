@@ -47,6 +47,8 @@ open PoseTrace.xcodeproj
 | 4 | CameraPreviewView.swift | 预览方向依赖"锁竖屏 + 90°补设" | 若方向异常,改用 `AVCaptureDevice.RotationCoordinator`(docs/03 §5 已注明) |
 | 5 | 并发警告 | `AnalyzedPhoto`(含 CGImage)跨 `Task.detached` 传递,严格并发模式下会告警 | Swift 5 语言模式默认可编译;如开 strict concurrency,给 `AnalyzedPhoto` 加 `@unchecked Sendable` 包装并注明理由 |
 | 6 | project.yml | XcodeGen 字段随版本演进 | 按 `xcodegen generate` 报错提示微调 |
+| 7 | ImportFlowView.swift | `PhotosPickerItem` 不遵守 `Equatable` → `onChange` 报错 | 改用 `.task(id: pickerItem?.itemIdentifier)`;id 是 `String?` 天然 `Equatable` |
+| 8 | ImportViewModel.swift | `@Observable` 宏展开文件不继承本文件 import,`PhotosPickerItem` 报"cannot find in scope" | 属性声明写全限定名 `PhotosUI.PhotosPickerItem` |
 
 ## 5. 目录速览
 

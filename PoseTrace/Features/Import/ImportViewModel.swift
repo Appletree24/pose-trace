@@ -14,7 +14,8 @@ final class ImportViewModel {
     }
 
     var phase: Phase = .pickPhoto
-    var pickerItem: PhotosPickerItem?
+    /// PhotosPickerItem 在 @Observable 宏展开里解析不到;改用 String id 做观察键
+    var pickerItemID: String?
     var photo: AnalyzedPhoto?
     var selectedCandidateIndex = 0
     var contour: [NormalizedPoint] = []
@@ -33,9 +34,8 @@ final class ImportViewModel {
         return candidates[selectedCandidateIndex]
     }
 
-    /// 由视图 onChange(of: pickerItem) 触发
-    func analyzePickedItem() async {
-        guard let item = pickerItem else { return }
+    /// 由视图 .task(id: pickerItemID) 触发;item 由视图持有,VM 只存 id 做 task 触发键
+    func analyze(item: PhotosUI.PhotosPickerItem) async {
         phase = .analyzing
         errorMessage = nil
         do {
@@ -53,7 +53,7 @@ final class ImportViewModel {
             await refreshContour()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            pickerItem = nil
+            pickerItemID = nil
             phase = .pickPhoto
         }
     }

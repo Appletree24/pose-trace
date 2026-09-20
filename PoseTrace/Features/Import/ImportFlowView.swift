@@ -6,6 +6,7 @@ struct ImportFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LibraryStore.self) private var library
     @State private var model = ImportViewModel()
+    @State private var pickerItem: PhotosUI.PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
@@ -23,9 +24,13 @@ struct ImportFlowView: View {
                     }
                 }
         }
-        .onChange(of: model.pickerItem) { _, newItem in
-            guard newItem != nil else { return }
-            Task { await model.analyzePickedItem() }
+        // 视图持有 PhotosPickerItem(宏展开不 import PhotosUI);itemIdentifier 同步到 VM 做 task 键
+        .task(id: model.pickerItemID) {
+            guard let pickerItem else { return }
+            await model.analyze(item: pickerItem)
+        }
+        .onChange(of: pickerItem?.itemIdentifier) { _, newID in
+            model.pickerItemID = newID
         }
         .interactiveDismissDisabled(model.phase == .analyzing)
     }
@@ -51,7 +56,7 @@ struct ImportFlowView: View {
             Text("选一张带人物的照片\n提取骨架与轮廓作为拍摄参考")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            PhotosPicker(selection: $model.pickerItem, matching: .images) {
+            PhotosPicker(selection: $pickerItem, matching: .images) {
                 Label("从相册选择", systemImage: "photo.on.rectangle")
             }
             .buttonStyle(.borderedProminent)
