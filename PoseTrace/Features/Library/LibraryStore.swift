@@ -26,9 +26,31 @@ final class LibraryStore {
         persist()
     }
 
+    /// 重命名;空名忽略
+    func rename(_ template: PoseTemplate, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let index = templates.firstIndex(where: { $0.id == template.id }) else { return }
+        templates[index].name = trimmed
+        persist()
+    }
+
+    /// 收藏置顶:重新排序保持 收藏在前(各自按入库倒序)
+    func toggleFavorite(_ template: PoseTemplate) {
+        guard let index = templates.firstIndex(where: { $0.id == template.id }) else { return }
+        templates[index].isFavorite.toggle()
+        let favorites = templates.filter(\.isFavorite)
+        let rest = templates.filter { !$0.isFavorite }
+        templates = favorites + rest
+        persist()
+    }
+
     func delete(_ template: PoseTemplate) {
         templates.removeAll { $0.id == template.id }
         store?.deleteThumbnail(named: template.thumbnailFile)
+        if let original = template.originalFile {
+            store?.deleteOriginal(named: original)
+        }
         persist()
     }
 
@@ -39,6 +61,17 @@ final class LibraryStore {
     func writeThumbnail(_ image: CGImage, named name: String) throws {
         guard let store else { throw CocoaError(.fileNoSuchFile) }
         try store.writeThumbnail(image, named: name)
+    }
+
+    func writeOriginal(_ image: CGImage, named name: String) throws {
+        guard let store else { throw CocoaError(.fileNoSuchFile) }
+        try store.writeOriginal(image, named: name)
+    }
+
+    /// 相机页幽灵模式读参考原图;nil = 未保留或文件缺失
+    func originalImage(for template: PoseTemplate) -> CGImage? {
+        guard let name = template.originalFile else { return nil }
+        return store?.originalImage(named: name)
     }
 
     private func persist() {

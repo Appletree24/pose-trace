@@ -6,6 +6,15 @@ struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @State private var showImport = false
     @State private var cameraTemplate: PoseTemplate?
+    @State private var renameTarget: PoseTemplate?
+    @State private var renameText = ""
+
+    private var renameAlertPresented: Binding<Bool> {
+        Binding(
+            get: { renameTarget != nil },
+            set: { if !$0 { renameTarget = nil } }
+        )
+    }
 
     private let columns = [GridItem(.adaptive(minimum: 110), spacing: 12)]
 
@@ -34,6 +43,13 @@ struct LibraryView: View {
         .fullScreenCover(item: $cameraTemplate) { template in
             CameraScreen(template: template)
         }
+        .alert("重命名", isPresented: renameAlertPresented) {
+            TextField("名称", text: $renameText)
+            Button("取消", role: .cancel) {}
+            Button("确定") {
+                if let renameTarget { library.rename(renameTarget, to: renameText) }
+            }
+        }
     }
 
     private var emptyState: some View {
@@ -58,6 +74,21 @@ struct LibraryView: View {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
+                        Button {
+                            library.toggleFavorite(template)
+                        } label: {
+                            Label(
+                                template.isFavorite ? "取消收藏" : "收藏",
+                                systemImage: template.isFavorite ? "heart.fill" : "heart"
+                            )
+                        }
+                        Button {
+                            renameTarget = template
+                            renameText = template.name
+                        } label: {
+                            Label("重命名", systemImage: "pencil")
+                        }
+                        Divider()
                         Button(role: .destructive) {
                             library.delete(template)
                         } label: {
@@ -81,6 +112,16 @@ struct TemplateCell: View {
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(alignment: .topTrailing) {
+                    if template.isFavorite {
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(6)
+                            .background(.black.opacity(0.45), in: Circle())
+                            .padding(6)
+                    }
+                }
             Text(template.name)
                 .font(.footnote)
                 .lineLimit(1)

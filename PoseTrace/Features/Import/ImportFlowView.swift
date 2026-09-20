@@ -66,9 +66,10 @@ struct ImportFlowView: View {
     }
 
     private func save() {
-        let template = model.makeTemplate { image, name in
-            try library.writeThumbnail(image, named: name)
-        }
+        let template = model.makeTemplate(
+            writeThumbnail: { try library.writeThumbnail($0, named: $1) },
+            writeOriginal: { try library.writeOriginal($0, named: $1) }
+        )
         guard let template else { return }
         library.add(template)
         dismiss()

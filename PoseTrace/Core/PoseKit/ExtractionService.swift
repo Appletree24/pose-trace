@@ -54,7 +54,8 @@ struct ExtractionService {
         candidate: PoseCandidate,
         contour: [NormalizedPoint],
         photo: AnalyzedPhoto,
-        thumbnailFile: String
+        thumbnailFile: String,
+        originalFile: String? = nil
     ) -> PoseTemplate {
         PoseTemplate(
             id: UUID(),
@@ -63,7 +64,8 @@ struct ExtractionService {
             joints: candidate.joints,
             contour: contour,
             sourceAspect: photo.aspect,
-            thumbnailFile: thumbnailFile
+            thumbnailFile: thumbnailFile,
+            originalFile: originalFile
         )
     }
 }

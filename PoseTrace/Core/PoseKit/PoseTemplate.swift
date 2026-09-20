@@ -20,9 +20,64 @@ struct PoseTemplate: Codable, Identifiable, Sendable {
     let sourceAspect: Double
     /// 缩略图文件名(TemplateStore.thumbnails/ 下)
     let thumbnailFile: String
+    /// 参考原图文件名(TemplateStore/originals/ 下);nil = 未保留原图(幽灵模式不可用)
+    var originalFile: String?
+    /// 收藏;列表排序时置顶(docs/01 P1)
+    var isFavorite: Bool = false
 
     func point(_ joint: Joint) -> NormalizedPoint? { joints[joint.rawValue] }
+
+    /// 自定义解码器会抑制成员初始化器,显式补回
+    init(
+        id: UUID,
+        name: String,
+        createdAt: Date,
+        joints: [String: NormalizedPoint],
+        contour: [NormalizedPoint],
+        sourceAspect: Double,
+        thumbnailFile: String,
+        originalFile: String? = nil,
+        isFavorite: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+        self.joints = joints
+        self.contour = contour
+        self.sourceAspect = sourceAspect
+        self.thumbnailFile = thumbnailFile
+        self.originalFile = originalFile
+        self.isFavorite = isFavorite
+    }
+
+    /// 旧版本模板没有 originalFile/isFavorite,给默认值保证可解码(新增字段必须在此登记默认)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        joints = try c.decode([String: NormalizedPoint].self, forKey: .joints)
+        contour = try c.decode([NormalizedPoint].self, forKey: .contour)
+        sourceAspect = try c.decode(Double.self, forKey: .sourceAspect)
+        thumbnailFile = try c.decode(String.self, forKey: .thumbnailFile)
+        originalFile = try c.decodeIfPresent(String.self, forKey: .originalFile)
+        isFavorite = try c.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+    }
 }
+
+/// 相机闪光灯模式
+enum FlashMode: String, Codable, CaseIterable, Sendable {
+    case auto, on, off
+
+    var next: FlashMode {
+        switch self {
+        case .auto: return .on
+        case .on: return .off
+        case .off: return .auto
+        }
+    }
+}
+
 
 /// 叠加层显示模式
 enum OverlayStyle: String, Codable, CaseIterable, Sendable {

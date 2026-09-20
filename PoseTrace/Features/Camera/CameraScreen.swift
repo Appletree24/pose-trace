@@ -5,6 +5,7 @@ import UIKit
 struct CameraScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(LibraryStore.self) private var library
     @State private var model: CameraViewModel
 
     init(template: PoseTemplate) {
@@ -23,7 +24,11 @@ struct CameraScreen: View {
                 ProgressView().tint(.white)
             }
         }
-        .task { await model.start() }
+        .task {
+            await model.start()
+            // 幽灵模式参考图:仅当模板保存了原图时可用(docs/01 P1)
+            model.setGhostImage(library.originalImage(for: model.template))
+        }
         .onDisappear { model.stop() }
         .statusBarHidden()
     }
@@ -34,11 +39,66 @@ struct CameraScreen: View {
         ZStack {
             CameraPreviewView(session: model.controller.session)
                 .ignoresSafeArea()
+            ghostLayer
+            gridLayer
             overlayCanvas
+            levelIndicator
             controls
             if let toast = model.toast {
                 toastView(toast)
             }
+        }
+    }
+
+    /// 幽灵模式:参考原图整体半透明叠加(docs/01 P1)
+    @ViewBuilder private var ghostLayer: some View {
+        if model.ghostEnabled, let ghost = model.ghostImage {
+            Image(decorative: ghost, scale: 1)
+                .resizable()
+                .scaledToFit()
+                .opacity(0.35)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// 九宫格网格线(docs/01 P1)
+    @ViewBuilder private var gridLayer: some View {
+        if model.showGrid {
+            Canvas { context, size in
+                var path = Path()
+                for i in 1..<3 {
+                    let x = size.width * CGFloat(i) / 3
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x, y: size.height))
+                    let y = size.height * CGFloat(i) / 3
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: size.width, y: y))
+                }
+                context.stroke(path, with: .color(.white.opacity(0.35)), lineWidth: 0.5)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// 水平仪:叠加层旋转角相对最近 90° 倍数的偏差指示(docs/01 P1)。
+    /// 轮廓旋转与设备物理水平无必然关联,此指示供用户把参考姿势摆正。
+    @ViewBuilder private var levelIndicator: some View {
+        if model.showLevel {
+            let degrees = model.transform.rotationRadians * 180 / .pi
+            let snapped = (degrees / 90).rounded() * 90
+            let delta = degrees - snapped
+            VStack {
+                Spacer()
+                Text(String(format: "%+.1f°", delta))
+                    .font(.caption.monospacedDigit())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.black.opacity(0.6), in: Capsule())
+                    .foregroundStyle(abs(delta) < 2 ? .green : .white)
+                    .padding(.bottom, 210)
+            }
+            .allowsHitTesting(false)
         }
     }
 
@@ -105,7 +165,7 @@ struct CameraScreen: View {
                 Spacer()
                 Text(model.template.name).font(.subheadline).lineLimit(1)
                 Spacer()
-                Button { model.controller.switchCamera() } label: {
+                Button { model.switchCamera() } label: {
                     Image(systemName: "arrow.triangle.2.circlepath.camera")
                 }
             }
@@ -117,6 +177,36 @@ struct CameraScreen: View {
             Spacer()
 
             VStack(spacing: 14) {
+                // 第二行:P1 工具(网格 / 水平 / 幽灵 / 闪光 / 镜像保存)
+                HStack(spacing: 18) {
+                    Button { model.showGrid.toggle() } label: {
+                        Image(systemName: "grid")
+                            .symbolVariant(model.showGrid ? .fill : .none)
+                    }
+                    Button { model.showLevel.toggle() } label: {
+                        Image(systemName: "level")
+                            .symbolVariant(model.showLevel ? .fill : .none)
+                    }
+                    Button { model.toggleGhost() } label: {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .symbolVariant(model.ghostEnabled ? .fill : .none)
+                    }
+                    .disabled(model.ghostImage == nil)
+                    .opacity(model.ghostImage == nil ? 0.4 : 1)
+                    Button { model.flash = model.flash.next } label: {
+                        Image(systemName: flashIcon)
+                    }
+                    Button { model.mirrorSelfieSave.toggle() } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .symbolVariant(model.mirrorSelfieSave ? .fill : .none)
+                    }
+                    .opacity(model.isFrontCamera ? 1 : 0.4)
+                    .disabled(!model.isFrontCamera)
+                }
+                .font(.title3)
+                .foregroundStyle(.white)
+                .tint(.white)
+
                 HStack(spacing: 18) {
                     Button { model.cycleStyle() } label: {
                         Image(systemName: styleIcon)
@@ -155,8 +245,19 @@ struct CameraScreen: View {
         }
     }
 
+    private var flashIcon: String {
+        switch model.flash {
+        case .auto: return "bolt.badge.automatic"
+        case .on: return "bolt.fill"
+        case .off: return "bolt.slash"
+        }
+    }
+
     private var shutterButton: some View {
-        Button { model.capture() } label: {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            model.capture()
+        } label: {
             ZStack {
                 Circle().strokeBorder(.white, lineWidth: 4).frame(width: 74, height: 74)
                 Circle().fill(.white).frame(width: 60, height: 60)

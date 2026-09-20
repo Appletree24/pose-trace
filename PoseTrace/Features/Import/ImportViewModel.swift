@@ -20,6 +20,8 @@ final class ImportViewModel {
     var contour: [NormalizedPoint] = []
     var contourFailed = false
     var templateName = ""
+    /// 保留参考原图 → 相机页可用"幽灵模式"整体半透明叠加(docs/01 P1)
+    var keepOriginal = true
     var errorMessage: String?
 
     private let service = ExtractionService()
@@ -72,15 +74,26 @@ final class ImportViewModel {
         contourFailed = result.isEmpty
     }
 
-    /// 生成模板;缩略图写盘经调用方注入(LibraryStore 持有 TemplateStore)
-    func makeTemplate(writeThumbnail: (CGImage, String) throws -> Void) -> PoseTemplate? {
+    /// 生成模板;缩略图/原图写盘经调用方注入(LibraryStore 持有 TemplateStore)
+    func makeTemplate(
+        writeThumbnail: (CGImage, String) throws -> Void,
+        writeOriginal: (CGImage, String) throws -> Void
+    ) -> PoseTemplate? {
         guard let photo, let candidate = selectedCandidate else { return nil }
-        let thumbnailFile = UUID().uuidString + ".jpg"
+        let thumbnailFile = "th-\(UUID().uuidString).jpg"
         do {
             try writeThumbnail(photo.image, thumbnailFile)
         } catch {
             errorMessage = "缩略图保存失败:\(error.localizedDescription)"
             return nil
+        }
+        // 原图写失败不阻塞入库:幽灵模式按钮按 originalFile == nil 禁用(docs/01 P1)
+        var originalFile: String?
+        if keepOriginal {
+            let name = "orig-\(UUID().uuidString).jpg"
+            if (try? writeOriginal(photo.image, name)) != nil {
+                originalFile = name
+            }
         }
         let trimmed = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
         return service.makeTemplate(
@@ -88,7 +101,8 @@ final class ImportViewModel {
             candidate: candidate,
             contour: contour,
             photo: photo,
-            thumbnailFile: thumbnailFile
+            thumbnailFile: thumbnailFile,
+            originalFile: originalFile
         )
     }
 

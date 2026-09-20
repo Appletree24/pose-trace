@@ -14,6 +14,8 @@ struct ExtractionPreviewView: View {
             TextField("模板名称", text: $model.templateName)
                 .textFieldStyle(.roundedBorder)
                 .padding(.horizontal)
+            Toggle("保留参考原图(幽灵模式可用)", isOn: $model.keepOriginal)
+                .padding(.horizontal)
         }
         .padding(.vertical)
     }

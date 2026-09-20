@@ -77,10 +77,13 @@ struct OverlayTransform: Codable {
 
 ```
 templates.json          # [PoseTemplate],原子写(write(to:options:.atomic))
-thumbnails/<uuid>.heic  # 长边 600px,列表展示用
+thumbnails/<uuid>.jpg   # 长边 600px,列表展示用
+originals/<uuid>.jpg    # P1 幽灵模式:保留的参考原图(可选,导入页开关)
 ```
 
-隐私取舍:MVP 不保存导入原图(省体积 + 降低敏感度),缩略图仅用于库列表;P1 做"幽灵模式"时再增加"保留原图"开关,并在设置页提供一键清空。
+`PoseTemplate` 在 v0.2 新增 `originalFile` / `isFavorite` 字段,`init(from:)` 提供默认值,旧 JSON 无迁移成本。
+
+隐私取舍:导入原图默认不保留;用户在导入页显式开"保留参考原图"时才落 `originals/`(幽灵模式素材),删除模板时连带清理。设置页一键清空留作 P1 收尾项。
 
 ## 4. 权限与隐私
 
