@@ -24,18 +24,19 @@ struct ImportFlowView: View {
                     }
                 }
         }
-        // PhotosPickerItem 是 PhotosUI 顶层类型,VM 里碰不到;视图负责 loadTransferable 后传 Data
-        .task(id: model.pickerItemID) {
+        // PhotosPickerItem 是 PhotosUI 顶层类型,VM 里碰不到;
+        // 视图负责 loadTransferable 后把 Data 传给 VM,不经 task(id:) 中转
+        .onChange(of: pickerItem?.itemIdentifier) { _, _ in
             guard let item = pickerItem else { return }
-            guard let data = try? await item.loadTransferable(type: Data.self) else {
-                model.errorMessage = ExtractError.imageDecodeFailed.errorDescription ?? "无法读取照片"
-                model.pickerItemID = nil
-                return
+            Task {
+                model.phase = .analyzing
+                guard let data = try? await item.loadTransferable(type: Data.self) else {
+                    model.errorMessage = ExtractError.imageDecodeFailed.errorDescription ?? "无法读取照片"
+                    model.phase = .pickPhoto
+                    return
+                }
+                await model.analyze(imageData: data)
             }
-            await model.analyze(imageData: data)
-        }
-        .onChange(of: pickerItem?.itemIdentifier) { _, newID in
-            model.pickerItemID = newID
         }
         .interactiveDismissDisabled(model.phase == .analyzing)
     }

@@ -14,8 +14,7 @@ final class ImportViewModel {
     }
 
     var phase: Phase = .pickPhoto
-    /// 由视图 .task(id:) 驱动;视图持系统选图器 item,VM 只收 Data,不碰 PhotosUI 类型
-    var pickerItemID: String?
+    /// 选图 item 由视图持有并负责 loadTransferable;VM 只收 Data,不碰 PhotosUI 类型
     var photo: AnalyzedPhoto?
     var selectedCandidateIndex = 0
     var contour: [NormalizedPoint] = []
@@ -50,7 +49,6 @@ final class ImportViewModel {
             await refreshContour()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            pickerItemID = nil
             phase = .pickPhoto
         }
     }
