@@ -6,7 +6,7 @@ struct ImportFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LibraryStore.self) private var library
     @State private var model = ImportViewModel()
-    @State private var pickerItem: PhotosUI.PhotosPickerItem?
+    @State private var pickerItem: PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
@@ -24,10 +24,15 @@ struct ImportFlowView: View {
                     }
                 }
         }
-        // 视图持有 PhotosPickerItem(宏展开不 import PhotosUI);itemIdentifier 同步到 VM 做 task 键
+        // PhotosPickerItem 是 PhotosUI 顶层类型,VM 里碰不到;视图负责 loadTransferable 后传 Data
         .task(id: model.pickerItemID) {
-            guard let pickerItem else { return }
-            await model.analyze(item: pickerItem)
+            guard let item = pickerItem else { return }
+            guard let data = try? await item.loadTransferable(type: Data.self) else {
+                model.errorMessage = ExtractError.imageDecodeFailed.errorDescription ?? "无法读取照片"
+                model.pickerItemID = nil
+                return
+            }
+            await model.analyze(imageData: data)
         }
         .onChange(of: pickerItem?.itemIdentifier) { _, newID in
             model.pickerItemID = newID

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 import CoreGraphics
-import PhotosUI
+import PhotosUI   // 仅文件内签名使用;@Observable 宏展开不继承此 import,属性里不能出现 PhotosUI 类型
 
 /// 导入流程状态机:选图 → 分析 → 预览确认(docs/01 §3)
 @MainActor @Observable
@@ -14,7 +14,7 @@ final class ImportViewModel {
     }
 
     var phase: Phase = .pickPhoto
-    /// PhotosPickerItem 在 @Observable 宏展开里解析不到;改用 String id 做观察键
+    /// 由视图 .task(id:) 驱动;视图持系统选图器 item,VM 只收 Data,不碰 PhotosUI 类型
     var pickerItemID: String?
     var photo: AnalyzedPhoto?
     var selectedCandidateIndex = 0
@@ -34,14 +34,11 @@ final class ImportViewModel {
         return candidates[selectedCandidateIndex]
     }
 
-    /// 由视图 .task(id: pickerItemID) 触发;item 由视图持有,VM 只存 id 做 task 触发键
-    func analyze(item: PhotosUI.PhotosPickerItem) async {
+    /// 由视图在 .task(id: pickerItemID) 里调用;data 由视图负责 loadTransferable 得到
+    func analyze(imageData data: Data) async {
         phase = .analyzing
         errorMessage = nil
         do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                throw ExtractError.imageDecodeFailed
-            }
             let service = self.service
             let result = try await Task.detached(priority: .userInitiated) {
                 try service.analyze(imageData: data)

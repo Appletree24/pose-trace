@@ -48,7 +48,7 @@ open PoseTrace.xcodeproj
 | 5 | 并发警告 | `AnalyzedPhoto`(含 CGImage)跨 `Task.detached` 传递,严格并发模式下会告警 | Swift 5 语言模式默认可编译;如开 strict concurrency,给 `AnalyzedPhoto` 加 `@unchecked Sendable` 包装并注明理由 |
 | 6 | project.yml | XcodeGen 字段随版本演进 | 按 `xcodegen generate` 报错提示微调 |
 | 7 | ImportFlowView.swift | `PhotosPickerItem` 不遵守 `Equatable` → `onChange` 报错 | 改用 `.task(id: pickerItem?.itemIdentifier)`;id 是 `String?` 天然 `Equatable` |
-| 8 | ImportViewModel.swift | `@Observable` 宏展开文件不继承本文件 import,`PhotosPickerItem` 报"cannot find in scope" | 属性声明写全限定名 `PhotosUI.PhotosPickerItem` |
+| 8 | ImportViewModel.swift | `PhotosPickerItem` 是 `PhotosUI` **顶层**类型:不能写 `PhotosUI.PhotosPickerItem`;同时 `@Observable` 宏展开文件不继承 `import PhotosUI`,裸名也解析不到 | VM 完全不持该类型:属性只存 `pickerItemID: String?`,方法签名收 `Data`;`loadTransferable` 在 View 层做 |
 
 ## 5. 目录速览
 
