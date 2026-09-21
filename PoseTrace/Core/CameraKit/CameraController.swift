@@ -87,7 +87,7 @@ final class CameraController: NSObject {
     func capturePhoto(mirrorResult: Bool = false, completion: @escaping (Result<Data, Error>) -> Void) {
         sessionQueue.async { [self] in
             let settings = AVCapturePhotoSettings()
-            settings.flashMode = AVCapturePhotoSettings.FlashMode(flashMode)
+            settings.flashMode = AVCaptureDevice.FlashMode(flashMode)
             // 应用锁竖屏(Info.plist),固定 90°;若后续放开横屏,改用 AVCaptureDevice.RotationCoordinator
             if let connection = photoOutput.connection(with: .video),
                connection.isVideoRotationAngleSupported(90) {
@@ -158,7 +158,7 @@ private final class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelega
     }
 }
 
-private extension AVCapturePhotoSettings.FlashMode {
+private extension AVCaptureDevice.FlashMode {
     init(_ mode: FlashMode) {
         switch mode {
         case .auto: self = .auto
