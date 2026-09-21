@@ -33,7 +33,7 @@ final class ImportViewModel {
         return candidates[selectedCandidateIndex]
     }
 
-    /// 由视图在 .task(id: pickerItemID) 里调用;data 由视图负责 loadTransferable 得到
+    /// 由视图 onChange 触发;data 由视图负责 loadTransferable 得到
     func analyze(imageData data: Data) async {
         phase = .analyzing
         errorMessage = nil

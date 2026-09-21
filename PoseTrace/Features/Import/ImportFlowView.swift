@@ -24,10 +24,10 @@ struct ImportFlowView: View {
                     }
                 }
         }
-        // PhotosPickerItem 是 PhotosUI 顶层类型,VM 里碰不到;
-        // 视图负责 loadTransferable 后把 Data 传给 VM,不经 task(id:) 中转
-        .onChange(of: pickerItem?.itemIdentifier) { _, _ in
-            guard let item = pickerItem else { return }
+        // itemIdentifier 是 String?,Equatable;pickerItem 是 struct 不能用 ObjectIdentifier
+        // 注意:onChange 在 itemIdentifier 从 nil→非nil 时触发,pickerItem 此时已赋值
+        .onChange(of: pickerItem?.itemIdentifier) { _, newID in
+            guard newID != nil, let item = pickerItem else { return }
             Task {
                 model.phase = .analyzing
                 guard let data = try? await item.loadTransferable(type: Data.self) else {
